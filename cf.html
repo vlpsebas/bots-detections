@@ -1,291 +1,137 @@
 <!-- cf.html -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cloudflare Detection Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cloudflare Detection</title>
   <style>
     body {
       font-family: sans-serif;
-      background: #f9f9f9;
       padding: 2rem;
-      line-height: 1.5;
+      background-color: #f8f8f8;
     }
-
     h1 {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .detection {
-      background: white;
-      border-left: 5px solid #444;
-      padding: 1rem 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .title {
-      font-weight: bold;
-      font-size: 1.3rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .param {
-      font-family: monospace;
-      background: #f0f0f0;
-      padding: 0.4rem 0.8rem;
-      border-radius: 4px;
-      display: inline-block;
-      margin-right: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .tag {
-      font-style: italic;
-      color: #a00;
-      margin-left: 0.3rem;
-    }
-
-    .normal-tag {
-      color: #060;
-    }
-
-    .explanation {
-      margin-top: 0.3rem;
       margin-bottom: 1rem;
-      color: #555;
+    }
+    .section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+    .section h2 {
+      margin-bottom: 0.5rem;
+    }
+    code {
+      background: #eee;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
     }
   </style>
 </head>
-
 <body>
-  <h1>Cloudflare Detection Results</h1>
-
-  <div id="results-container">
-    <!-- JS will inject detection blocks here -->
-  </div>
+  <h1>Cloudflare Bot & WAF Detection</h1>
+  <div id="results-container">Loading...</div>
 
   <script>
-    function createDetectionBlock(title, params, explanation) {
-      const container = document.createElement('div');
-      container.className = 'detection';
-
-      const titleEl = document.createElement('div');
-      titleEl.className = 'title';
-      titleEl.textContent = title;
-      container.appendChild(titleEl);
-
-      for (const param of params) {
-        const paramEl = document.createElement('div');
-
-        const spanParam = document.createElement('span');
-        spanParam.className = 'param';
-        spanParam.textContent = `${param.name}: ${param.value ?? 'N/A'}`;
-        paramEl.appendChild(spanParam);
-
-        const tagSpan = document.createElement('span');
-        tagSpan.className = 'tag';
-        tagSpan.textContent = param.tag;
-        tagSpan.style.color = param.tagColor || '#a00';
-        paramEl.appendChild(tagSpan);
-
-        container.appendChild(paramEl);
-      }
-
-      if (explanation) {
-        const explEl = document.createElement('div');
-        explEl.className = 'explanation';
-        explEl.textContent = explanation;
-        container.appendChild(explEl);
-      }
-
-      return container;
+    function safeLower(val) {
+      return typeof val === 'string' ? val.toLowerCase() : '';
     }
 
-    function analyzeAndTag(data) {
-      const tags = {};
+    function safeStr(val) {
+      return val !== null && val !== undefined ? String(val) : 'N/A';
+    }
 
-      // User Agent tagging
-      if (data.userAgent) {
-        if (/bot|crawl|spider|curl|wget/i.test(data.userAgent)) {
-          tags.userAgentTag = '(Suspicious User-Agent)';
-          tags.userAgentTagColor = '#a00';
-        } else {
-          tags.userAgentTag = '(Legitimate browser)';
-          tags.userAgentTagColor = '#060';
-        }
-      } else {
-        tags.userAgentTag = '(Missing User-Agent)';
-        tags.userAgentTagColor = '#a00';
-      }
+    function tagUserAgent(ua) {
+      if (!ua) return '(Missing)';
+      const uaStr = ua.toLowerCase();
+      if (uaStr.includes('headless') || uaStr.includes('phantom')) return '(Suspicious)';
+      if (uaStr.includes('chrome') || uaStr.includes('firefox') || uaStr.includes('safari')) return '(Legitimate browser)';
+      return '(Unknown)';
+    }
 
-      // ASN tagging
-      if (data.asn) {
-        if (/google|amazon|cloudflare|digitalocean|hetzner|gcp/i.test(data.asn.toLowerCase())) {
-          tags.asnTag = '(Known cloud provider - suspicious)';
-          tags.asnTagColor = '#a00';
-        } else {
-          tags.asnTag = '(Legitimate ISP)';
-          tags.asnTagColor = '#060';
-        }
-      } else {
-        tags.asnTag = '(ASN missing)';
-        tags.asnTagColor = '#a00';
-      }
+    function tagASN(asn) {
+      const cloudASNs = ['google', 'amazon', 'aws', 'microsoft', 'cloudflare'];
+      const asnStr = safeLower(asn);
+      if (!asnStr || asnStr === 'n/a') return '(ASN missing)';
+      return cloudASNs.some(name => asnStr.includes(name)) ? '(Cloud provider)' : '(Likely user)';
+    }
 
-      // Bot Score
-      if (data.botScore !== null) {
-        const score = parseInt(data.botScore);
-        tags.botScoreTag = score < 30 ? '(Low - suspicious)' : '(Normal)';
-        tags.botScoreTagColor = score < 30 ? '#a00' : '#060';
-      } else {
-        tags.botScoreTag = '(No bot score)';
-        tags.botScoreTagColor = '#a00';
-      }
+    function tagBotScore(score) {
+      const num = parseFloat(score);
+      if (isNaN(num)) return '(No bot score)';
+      if (num < 30) return '(Likely bot)';
+      if (num > 70) return '(Likely human)';
+      return '(Uncertain)';
+    }
 
-      // WAF Score
-      if (data.wafScore !== null) {
-        const wafScoreNum = parseInt(data.wafScore);
-        tags.wafScoreTag = wafScoreNum > 40 ? '(High risk)' : '(Normal)';
-        tags.wafScoreTagColor = wafScoreNum > 40 ? '#a00' : '#060';
-      } else {
-        tags.wafScoreTag = '(No WAF score)';
-        tags.wafScoreTagColor = '#a00';
-      }
-
-      // WAF Action
-      if (data.wafAction) {
-        if (data.wafAction === 'js_challenge') {
-          tags.wafActionTag = '(Triggered JS challenge)';
-          tags.wafActionTagColor = '#a00';
-        } else {
-          tags.wafActionTag = '(Normal)';
-          tags.wafActionTagColor = '#060';
-        }
-      } else {
-        tags.wafActionTag = '(No WAF action)';
-        tags.wafActionTagColor = '#a00';
-      }
-
-      // Referer & Origin
-      if (!data.referer || data.referer === '') {
-        tags.refererTag = '(Empty - suspicious)';
-        tags.refererTagColor = '#a00';
-      } else {
-        tags.refererTag = '(Valid)';
-        tags.refererTagColor = '#060';
-      }
-
-      if (!data.origin || data.origin === '' || (data.referer && !data.origin.includes(new URL(data.referer).hostname))) {
-        tags.originTag = '(Mismatch or empty - suspicious)';
-        tags.originTagColor = '#a00';
-      } else {
-        tags.originTag = '(Matches Referer domain)';
-        tags.originTagColor = '#060';
-      }
-
-      // JA3 / JA4 TLS Fingerprints
-      if (data.ja3 && data.ja4) {
-        if (data.ja3 === data.ja4) {
-          tags.ja3Tag = '(Matches JA4 - consistent)';
-          tags.ja3TagColor = '#060';
-          tags.ja4Tag = '(Consistent with JA3)';
-          tags.ja4TagColor = '#060';
-        } else {
-          tags.ja3Tag = '(Mismatch - suspicious)';
-          tags.ja3TagColor = '#a00';
-          tags.ja4Tag = '(Mismatch - suspicious)';
-          tags.ja4TagColor = '#a00';
-        }
-      } else {
-        tags.ja3Tag = '(Missing JA3/JA4)';
-        tags.ja3TagColor = '#a00';
-        tags.ja4Tag = '(Missing JA3/JA4)';
-        tags.ja4TagColor = '#a00';
-      }
-
-      return tags;
+    function tagWAFAction(action) {
+      if (!action) return '(No WAF action)';
+      const act = action.toLowerCase();
+      if (act.includes('challenge') || act.includes('block')) return '(Blocked or challenged)';
+      return '(Allowed)';
     }
 
     async function fetchDetectionData() {
       try {
-        const res = await fetch('/js-detection');
+        const res = await fetch('/functions/js-detection');
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-
-        const tags = analyzeAndTag(data);
 
         const container = document.getElementById('results-container');
         container.innerHTML = '';
 
-        // User Agent & ASN block
-        container.appendChild(createDetectionBlock(
-          'User Agent & ASN',
-          [
-            { name: 'UserAgent', value: data.userAgent, tag: tags.userAgentTag, tagColor: tags.userAgentTagColor },
-            { name: 'ASN', value: data.asn, tag: tags.asnTag, tagColor: tags.asnTagColor },
-          ],
-          'User Agent is checked against known browser strings. ASN checked against cloud providers or suspicious sources.'
-        ));
+        container.innerHTML = `
+          <div class="section">
+            <h2>User Agent & ASN</h2>
+            <p><strong>UserAgent:</strong> ${safeStr(data.userAgent)} ${tagUserAgent(data.userAgent)}</p>
+            <p><strong>ASN:</strong> ${safeStr(data.asn)} ${tagASN(data.asn)}</p>
+            <p><em>User Agent is checked against known browser strings. ASN checked against cloud providers or suspicious sources.</em></p>
+          </div>
 
-        // Bot Score & WAF block
-        container.appendChild(createDetectionBlock(
-          'Bot Score & WAF Scores',
-          [
-            { name: 'BotScore', value: data.botScore, tag: tags.botScoreTag, tagColor: tags.botScoreTagColor },
-            { name: 'WAFAction', value: data.wafAction, tag: tags.wafActionTag, tagColor: tags.wafActionTagColor },
-            { name: 'WAFScore', value: data.wafScore, tag: tags.wafScoreTag, tagColor: tags.wafScoreTagColor },
-          ],
-          'BotScore below ~30 suggests bot-like behavior. High WAFScore and actions like js_challenge indicate potential threat or challenge triggered.'
-        ));
+          <div class="section">
+            <h2>Bot Score & WAF Scores</h2>
+            <p><strong>BotScore:</strong> ${safeStr(data.botScore)} ${tagBotScore(data.botScore)}</p>
+            <p><strong>WAFAction:</strong> ${safeStr(data.wafAction)} ${tagWAFAction(data.wafAction)}</p>
+            <p><strong>WAFScore:</strong> ${safeStr(data.wafScore)}</p>
+            <p><em>BotScore below ~30 suggests bot-like behavior. High WAFScore and actions like js_challenge indicate potential threat or challenge triggered.</em></p>
+          </div>
 
-        // Referer & Origin block
-        container.appendChild(createDetectionBlock(
-          'Referer & Origin',
-          [
-            { name: 'Referer', value: data.referer, tag: tags.refererTag, tagColor: tags.refererTagColor },
-            { name: 'Origin', value: data.origin, tag: tags.originTag, tagColor: tags.originTagColor },
-          ],
-          'Referer and Origin headers compared to detect suspicious or missing values.'
-        ));
+          <div class="section">
+            <h2>Referer & Origin</h2>
+            <p><strong>Referer:</strong> ${safeStr(data.referer)}</p>
+            <p><strong>Origin:</strong> ${safeStr(data.origin)}</p>
+            <p><em>Referer and Origin headers compared to detect suspicious or missing values.</em></p>
+          </div>
 
-        // TLS Fingerprints block
-        container.appendChild(createDetectionBlock(
-          'TLS Fingerprints',
-          [
-            { name: 'JA3', value: data.ja3, tag: tags.ja3Tag, tagColor: tags.ja3TagColor },
-            { name: 'JA4', value: data.ja4, tag: tags.ja4Tag, tagColor: tags.ja4TagColor },
-          ],
-          'JA3 and JA4 are TLS fingerprints; matching values indicate consistent client fingerprint.'
-        ));
+          <div class="section">
+            <h2>TLS Fingerprints</h2>
+            <p><strong>JA3:</strong> ${safeStr(data.ja3)}</p>
+            <p><strong>JA4:</strong> ${safeStr(data.ja4)}</p>
+            <p><em>JA3 and JA4 are TLS fingerprints; matching values indicate consistent client fingerprint.</em></p>
+          </div>
 
-        // Additional info block
-        container.appendChild(createDetectionBlock(
-          'Other Headers',
-          [
-            { name: 'BotManagementDetectionID', value: data.botManagementDetectionId, tag: '(ID)', tagColor: '#060' },
-            { name: 'CF-Ray', value: data.cfRay, tag: '(Cloudflare Ray)', tagColor: '#060' },
-            { name: 'X-Forwarded-For', value: data.xForwardedFor, tag: '(Client IP chain)', tagColor: '#060' },
-            { name: 'X-Client-IP', value: data.xClientIP, tag: '(Client IP)', tagColor: '#060' },
-            { name: 'CF-Connecting-IP', value: data.cfConnectingIP, tag: '(Connecting IP)', tagColor: '#060' },
-            { name: 'CF-Visitor', value: data.cfVisitor, tag: '(Visitor info)', tagColor: '#060' },
-            { name: 'CF-Request-UUID', value: data.cfRequestUUID, tag: '(Request UUID)', tagColor: '#060' },
-          ],
-          'Additional Cloudflare headers useful for diagnostics and identification.'
-        ));
-
-      } catch (e) {
-        const container = document.getElementById('results-container');
-        container.textContent = `Failed to fetch detection data: ${e.message}`;
-        container.style.color = 'red';
+          <div class="section">
+            <h2>Other Headers</h2>
+            <p><strong>BotManagementDetectionID:</strong> ${safeStr(data.botManagementDetectionId)}</p>
+            <p><strong>CF-Ray:</strong> ${safeStr(data.cfRay)}</p>
+            <p><strong>X-Forwarded-For:</strong> ${safeStr(data.xForwardedFor)}</p>
+            <p><strong>X-Client-IP:</strong> ${safeStr(data.xClientIP)}</p>
+            <p><strong>CF-Connecting-IP:</strong> ${safeStr(data.cfConnectingIP)}</p>
+            <p><strong>CF-Visitor:</strong> ${safeStr(data.cfVisitor)}</p>
+            <p><strong>CF-Request-UUID:</strong> ${safeStr(data.cfRequestUUID)}</p>
+            <p><em>Additional Cloudflare headers useful for diagnostics and identification.</em></p>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById('results-container').textContent = 'Failed to fetch detection data: ' + err.message;
+        console.error(err);
       }
     }
 
     fetchDetectionData();
   </script>
 </body>
-
 </html>
