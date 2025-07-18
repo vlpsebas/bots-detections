@@ -28,3 +28,21 @@ export async function onRequest(context) {
     },
   });
 }
+
+export async function onRequest(context) {
+  const headers = context.request.headers;
+
+  // Log headers for debugging
+  const allHeaders = {};
+  for (const [key, value] of headers.entries()) {
+    allHeaders[key] = value;
+  }
+
+  console.log("Headers received:", JSON.stringify(allHeaders, null, 2));
+
+  return new Response(JSON.stringify(allHeaders, null, 2), {
+    headers: {
+      'content-type': 'application/json',
+    }
+  });
+}
