@@ -1,8 +1,16 @@
 export async function onRequest(context) {
   const headers = context.request.headers;
 
+  // Optional: Log all headers (for debugging)
+  const allHeaders = {};
+  for (const [key, value] of headers.entries()) {
+    allHeaders[key] = value;
+  }
+  console.log("Headers received:", JSON.stringify(allHeaders, null, 2));
+
+  // Extract relevant Cloudflare and browser-related headers
   const cfHeaders = {
-    botScore: headers.get('cf-botscore') || null,
+    botScore: headers.get('cf-bot-score') || null, // fixed from cf-botscore
     wafAction: headers.get('cf-waf-action') || null,
     wafScore: headers.get('cf-waf-score') || null,
     referer: headers.get('referer') || null,
@@ -20,29 +28,11 @@ export async function onRequest(context) {
     cfRequestUUID: headers.get('cf-request-uuid') || null
   };
 
-  return new Response(JSON.stringify(cfHeaders), {
+  return new Response(JSON.stringify(cfHeaders, null, 2), {
     headers: {
       'content-type': 'application/json;charset=UTF-8',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET'
     },
-  });
-}
-
-export async function onRequest(context) {
-  const headers = context.request.headers;
-
-  // Log headers for debugging
-  const allHeaders = {};
-  for (const [key, value] of headers.entries()) {
-    allHeaders[key] = value;
-  }
-
-  console.log("Headers received:", JSON.stringify(allHeaders, null, 2));
-
-  return new Response(JSON.stringify(allHeaders, null, 2), {
-    headers: {
-      'content-type': 'application/json',
-    }
   });
 }
