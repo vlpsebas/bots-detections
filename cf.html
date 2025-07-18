@@ -212,7 +212,7 @@
 
     async function fetchDetectionData() {
       try {
-        const res = await fetch('/functions/js-detection');
+        const res = await fetch('/js-detection');
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
