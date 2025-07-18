@@ -1,0 +1,291 @@
+<!-- cf.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cloudflare Detection Results</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f9f9f9;
+      padding: 2rem;
+      line-height: 1.5;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .detection {
+      background: white;
+      border-left: 5px solid #444;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .title {
+      font-weight: bold;
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .param {
+      font-family: monospace;
+      background: #f0f0f0;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .tag {
+      font-style: italic;
+      color: #a00;
+      margin-left: 0.3rem;
+    }
+
+    .normal-tag {
+      color: #060;
+    }
+
+    .explanation {
+      margin-top: 0.3rem;
+      margin-bottom: 1rem;
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Cloudflare Detection Results</h1>
+
+  <div id="results-container">
+    <!-- JS will inject detection blocks here -->
+  </div>
+
+  <script>
+    function createDetectionBlock(title, params, explanation) {
+      const container = document.createElement('div');
+      container.className = 'detection';
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'title';
+      titleEl.textContent = title;
+      container.appendChild(titleEl);
+
+      for (const param of params) {
+        const paramEl = document.createElement('div');
+
+        const spanParam = document.createElement('span');
+        spanParam.className = 'param';
+        spanParam.textContent = `${param.name}: ${param.value ?? 'N/A'}`;
+        paramEl.appendChild(spanParam);
+
+        const tagSpan = document.createElement('span');
+        tagSpan.className = 'tag';
+        tagSpan.textContent = param.tag;
+        tagSpan.style.color = param.tagColor || '#a00';
+        paramEl.appendChild(tagSpan);
+
+        container.appendChild(paramEl);
+      }
+
+      if (explanation) {
+        const explEl = document.createElement('div');
+        explEl.className = 'explanation';
+        explEl.textContent = explanation;
+        container.appendChild(explEl);
+      }
+
+      return container;
+    }
+
+    function analyzeAndTag(data) {
+      const tags = {};
+
+      // User Agent tagging
+      if (data.userAgent) {
+        if (/bot|crawl|spider|curl|wget/i.test(data.userAgent)) {
+          tags.userAgentTag = '(Suspicious User-Agent)';
+          tags.userAgentTagColor = '#a00';
+        } else {
+          tags.userAgentTag = '(Legitimate browser)';
+          tags.userAgentTagColor = '#060';
+        }
+      } else {
+        tags.userAgentTag = '(Missing User-Agent)';
+        tags.userAgentTagColor = '#a00';
+      }
+
+      // ASN tagging
+      if (data.asn) {
+        if (/google|amazon|cloudflare|digitalocean|hetzner|gcp/i.test(data.asn.toLowerCase())) {
+          tags.asnTag = '(Known cloud provider - suspicious)';
+          tags.asnTagColor = '#a00';
+        } else {
+          tags.asnTag = '(Legitimate ISP)';
+          tags.asnTagColor = '#060';
+        }
+      } else {
+        tags.asnTag = '(ASN missing)';
+        tags.asnTagColor = '#a00';
+      }
+
+      // Bot Score
+      if (data.botScore !== null) {
+        const score = parseInt(data.botScore);
+        tags.botScoreTag = score < 30 ? '(Low - suspicious)' : '(Normal)';
+        tags.botScoreTagColor = score < 30 ? '#a00' : '#060';
+      } else {
+        tags.botScoreTag = '(No bot score)';
+        tags.botScoreTagColor = '#a00';
+      }
+
+      // WAF Score
+      if (data.wafScore !== null) {
+        const wafScoreNum = parseInt(data.wafScore);
+        tags.wafScoreTag = wafScoreNum > 40 ? '(High risk)' : '(Normal)';
+        tags.wafScoreTagColor = wafScoreNum > 40 ? '#a00' : '#060';
+      } else {
+        tags.wafScoreTag = '(No WAF score)';
+        tags.wafScoreTagColor = '#a00';
+      }
+
+      // WAF Action
+      if (data.wafAction) {
+        if (data.wafAction === 'js_challenge') {
+          tags.wafActionTag = '(Triggered JS challenge)';
+          tags.wafActionTagColor = '#a00';
+        } else {
+          tags.wafActionTag = '(Normal)';
+          tags.wafActionTagColor = '#060';
+        }
+      } else {
+        tags.wafActionTag = '(No WAF action)';
+        tags.wafActionTagColor = '#a00';
+      }
+
+      // Referer & Origin
+      if (!data.referer || data.referer === '') {
+        tags.refererTag = '(Empty - suspicious)';
+        tags.refererTagColor = '#a00';
+      } else {
+        tags.refererTag = '(Valid)';
+        tags.refererTagColor = '#060';
+      }
+
+      if (!data.origin || data.origin === '' || (data.referer && !data.origin.includes(new URL(data.referer).hostname))) {
+        tags.originTag = '(Mismatch or empty - suspicious)';
+        tags.originTagColor = '#a00';
+      } else {
+        tags.originTag = '(Matches Referer domain)';
+        tags.originTagColor = '#060';
+      }
+
+      // JA3 / JA4 TLS Fingerprints
+      if (data.ja3 && data.ja4) {
+        if (data.ja3 === data.ja4) {
+          tags.ja3Tag = '(Matches JA4 - consistent)';
+          tags.ja3TagColor = '#060';
+          tags.ja4Tag = '(Consistent with JA3)';
+          tags.ja4TagColor = '#060';
+        } else {
+          tags.ja3Tag = '(Mismatch - suspicious)';
+          tags.ja3TagColor = '#a00';
+          tags.ja4Tag = '(Mismatch - suspicious)';
+          tags.ja4TagColor = '#a00';
+        }
+      } else {
+        tags.ja3Tag = '(Missing JA3/JA4)';
+        tags.ja3TagColor = '#a00';
+        tags.ja4Tag = '(Missing JA3/JA4)';
+        tags.ja4TagColor = '#a00';
+      }
+
+      return tags;
+    }
+
+    async function fetchDetectionData() {
+      try {
+        const res = await fetch('/functions/js-detection');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+
+        const tags = analyzeAndTag(data);
+
+        const container = document.getElementById('results-container');
+        container.innerHTML = '';
+
+        // User Agent & ASN block
+        container.appendChild(createDetectionBlock(
+          'User Agent & ASN',
+          [
+            { name: 'UserAgent', value: data.userAgent, tag: tags.userAgentTag, tagColor: tags.userAgentTagColor },
+            { name: 'ASN', value: data.asn, tag: tags.asnTag, tagColor: tags.asnTagColor },
+          ],
+          'User Agent is checked against known browser strings. ASN checked against cloud providers or suspicious sources.'
+        ));
+
+        // Bot Score & WAF block
+        container.appendChild(createDetectionBlock(
+          'Bot Score & WAF Scores',
+          [
+            { name: 'BotScore', value: data.botScore, tag: tags.botScoreTag, tagColor: tags.botScoreTagColor },
+            { name: 'WAFAction', value: data.wafAction, tag: tags.wafActionTag, tagColor: tags.wafActionTagColor },
+            { name: 'WAFScore', value: data.wafScore, tag: tags.wafScoreTag, tagColor: tags.wafScoreTagColor },
+          ],
+          'BotScore below ~30 suggests bot-like behavior. High WAFScore and actions like js_challenge indicate potential threat or challenge triggered.'
+        ));
+
+        // Referer & Origin block
+        container.appendChild(createDetectionBlock(
+          'Referer & Origin',
+          [
+            { name: 'Referer', value: data.referer, tag: tags.refererTag, tagColor: tags.refererTagColor },
+            { name: 'Origin', value: data.origin, tag: tags.originTag, tagColor: tags.originTagColor },
+          ],
+          'Referer and Origin headers compared to detect suspicious or missing values.'
+        ));
+
+        // TLS Fingerprints block
+        container.appendChild(createDetectionBlock(
+          'TLS Fingerprints',
+          [
+            { name: 'JA3', value: data.ja3, tag: tags.ja3Tag, tagColor: tags.ja3TagColor },
+            { name: 'JA4', value: data.ja4, tag: tags.ja4Tag, tagColor: tags.ja4TagColor },
+          ],
+          'JA3 and JA4 are TLS fingerprints; matching values indicate consistent client fingerprint.'
+        ));
+
+        // Additional info block
+        container.appendChild(createDetectionBlock(
+          'Other Headers',
+          [
+            { name: 'BotManagementDetectionID', value: data.botManagementDetectionId, tag: '(ID)', tagColor: '#060' },
+            { name: 'CF-Ray', value: data.cfRay, tag: '(Cloudflare Ray)', tagColor: '#060' },
+            { name: 'X-Forwarded-For', value: data.xForwardedFor, tag: '(Client IP chain)', tagColor: '#060' },
+            { name: 'X-Client-IP', value: data.xClientIP, tag: '(Client IP)', tagColor: '#060' },
+            { name: 'CF-Connecting-IP', value: data.cfConnectingIP, tag: '(Connecting IP)', tagColor: '#060' },
+            { name: 'CF-Visitor', value: data.cfVisitor, tag: '(Visitor info)', tagColor: '#060' },
+            { name: 'CF-Request-UUID', value: data.cfRequestUUID, tag: '(Request UUID)', tagColor: '#060' },
+          ],
+          'Additional Cloudflare headers useful for diagnostics and identification.'
+        ));
+
+      } catch (e) {
+        const container = document.getElementById('results-container');
+        container.textContent = `Failed to fetch detection data: ${e.message}`;
+        container.style.color = 'red';
+      }
+    }
+
+    fetchDetectionData();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,83 @@
+<!-- jsd.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser Detection (JS)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background-color: #f4f4f4;
+        }
+
+        ul {
+            line-height: 1.6;
+        }
+
+        h2 {
+            margin-bottom: 1rem;
+        }
+
+        .detection {
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>JavaScript Browser Detection Results</h2>
+    <div id="results"></div>
+
+    <script>
+        (async () => {
+            const container = document.getElementById("results");
+            const results = [];
+            let passed = true;
+
+            function addResult(title, method, logic) {
+                results.push(`<div class="detection"><strong>${title}</strong><br>Method: ${method}<br><code>${logic}</code></div>`);
+            }
+
+            addResult("Detection 1", "navigator.webdriver", navigator.webdriver);
+            addResult("Detection 2", "navigator.plugins.length", navigator.plugins.length);
+            addResult("Detection 3", "navigator.languages", JSON.stringify(navigator.languages));
+            addResult("Detection 4", "screen.size", `${screen.width}x${screen.height}`);
+            addResult("Detection 5", "window outer/inner diff", `${window.outerWidth - window.innerWidth} / ${window.outerHeight - window.innerHeight}`);
+            addResult("Detection 6", "ontouchstart in window", 'ontouchstart' in window);
+
+            try {
+                const canvas = document.createElement("canvas");
+                const gl = canvas.getContext("webgl");
+                const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+                const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                addResult("Detection 7", "WebGL Vendor", vendor);
+                addResult("Detection 8", "WebGL Renderer", renderer);
+            } catch (e) {
+                addResult("Detection 7-8", "WebGL Error", true);
+            }
+
+            try {
+                const context = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = context.createAnalyser();
+                const osc = context.createOscillator();
+                osc.connect(analyser);
+                osc.start(0);
+                const data = new Float32Array(analyser.frequencyBinCount);
+                analyser.getFloatFrequencyData(data);
+                addResult("Detection 9", "Audio fingerprint length", data.length);
+                osc.stop();
+            } catch (e) {
+                addResult("Detection 9", "Audio error", true);
+            }
+
+            document.cookie = `vlada-jsd-passed=${passed}; path=/; SameSite=Strict`;
+            container.innerHTML = results.join("\n");
+        })();
+    </script>
+</body>
+
+</html>
