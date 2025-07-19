@@ -18,23 +18,33 @@
   <div id="results-container">Loading...</div>
 
   <script>
-  async function fetchDetectionData() {
-    try {
-      const [workerRes, jsRes] = await Promise.all([
-        fetch('/worker-detection'),
-        fetch('/js-detection')
-      ]);
+async function fetchDetectionData() {
+  try {
+    // Fetch from both endpoints
+    const [workerRes, jsRes] = await Promise.all([
+      fetch('/worker-detection'),
+      fetch('/js-detection')
+    ]);
 
-      if (!workerRes.ok || !jsRes.ok) throw new Error('Fetch failed');
+    // Read both as text first to debug if needed
+    const workerText = await workerRes.text();
+    const jsText = await jsRes.text();
 
-      const [workerData, jsData] = await Promise.all([
-        workerRes.json(),
-        jsRes.json()
-      ]);
+    // Parse JSON manually
+    const workerData = JSON.parse(workerText);
+    const jsData = JSON.parse(jsText);
 
-      const data = { ...jsData, ...workerData };
+    // Merge both
+    const data = { ...jsData, ...workerData };
 
-      renderDetectionCombos(data);
+    renderDetectionCombos(data);
+
+  } catch (err) {
+    document.getElementById('results-container').innerText =
+      'Failed to fetch detection data from worker/js-detection: ' + err.message;
+    console.error('Detection fetch error:', err);
+  }
+}
 
       // Inject navigator.webdriver into the final output
       const injected = sessionStorage.getItem('navigator.webdriver');
@@ -113,7 +123,13 @@
 
       fetchDetectionData().then(() => {
         const injected = sessionStorage.getItem('navigator.webdriver');
-        const el = document.querySelector("code:contains('navigator.webdriver')");
+        const codes = document.querySelectorAll('code');
+codes.forEach(code => {
+  if (code.textContent.includes('navigator.webdriver')) {
+    code.textContent = sessionStorage.getItem('navigator.webdriver');
+  }
+});
+        
         if (el) el.textContent = injected;
       });
     });
