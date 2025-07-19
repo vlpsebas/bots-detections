@@ -1,45 +1,46 @@
 export async function onRequest(context) {
   const { request } = context;
   const headers = request.headers;
-  const cf = request.cf || {}; // Zone-scoped fields
+  const cf = request.cf || {};
 
-  // Optional: Log all headers for debugging
-  const allHeaders = {};
-  for (const [key, value] of headers.entries()) {
-    allHeaders[key] = value;
-  }
-  console.log("Request headers received:", JSON.stringify(allHeaders, null, 2));
+  const headerValue = (key) => headers.get(key) || null;
 
   const result = {
-    // 🌍 Zone-scoped (request.cf) values
+    // 🌍 Zone-scoped fields from request.cf
     asn: cf.asn || null,
     colo: cf.colo || null,
     city: cf.city || null,
     region: cf.region || null,
     country: cf.country || null,
     tlsCipher: cf.tlsCipher || null,
-    ja3: cf.ja3 || null,
 
+    // 🧠 Bot Management fields (some may also come from headers)
+    botScore: headerValue('cf-bot-score') || cf.botManagement?.score || null,
     botManagement: {
       score: cf.botManagement?.score ?? null,
       corporateProxy: cf.botManagement?.corporateProxy ?? null,
       verifiedBot: cf.botManagement?.verifiedBot ?? null
     },
 
-    // 📥 Request headers
-    userAgent: headers.get('user-agent') || null,
-    referer: headers.get('referer') || null,
-    origin: headers.get('origin') || null,
+    // ⚠️ Security and diagnostics
+    wafAction: headerValue('cf-waf-action'),
+    wafScore: headerValue('cf-waf-score'),
+    botManagementDetectionId: headerValue('cf-bot-management-detection-id'),
+    cfRay: headerValue('cf-ray'),
+    cfVisitor: headerValue('cf-visitor'),
+    cfRequestUUID: headerValue('cf-request-uuid'),
 
-    wafAction: headers.get('cf-waf-action') || null,
-    wafScore: headers.get('cf-waf-score') || null,
-    botManagementDetectionId: headers.get('cf-bot-management-detection-id') || null,
-    cfRay: headers.get('cf-ray') || null,
-    xForwardedFor: headers.get('x-forwarded-for') || null,
-    xClientIP: headers.get('x-client-ip') || null,
-    cfConnectingIP: headers.get('cf-connecting-ip') || null,
-    cfVisitor: headers.get('cf-visitor') || null,
-    cfRequestUUID: headers.get('cf-request-uuid') || null
+    // 🔍 TLS fingerprints (some only in headers)
+    ja3: headerValue('cf-ja3') || cf.ja3 || null,
+    ja4: headerValue('cf-ja4') || null,
+
+    // 🧾 Network metadata
+    userAgent: headerValue('user-agent'),
+    referer: headerValue('referer'),
+    origin: headerValue('origin'),
+    xForwardedFor: headerValue('x-forwarded-for'),
+    xClientIP: headerValue('x-client-ip'),
+    cfConnectingIP: headerValue('cf-connecting-ip'),
   };
 
   return new Response(JSON.stringify(result, null, 2), {

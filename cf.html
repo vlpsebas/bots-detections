@@ -3,133 +3,96 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cloudflare Detection</title>
+  <title>Cloudflare Detection Report</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-      background-color: #f8f8f8;
-    }
-    h1 {
-      margin-bottom: 1rem;
-    }
-    .section {
-      margin-bottom: 2rem;
-      padding: 1rem;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
-    }
-    .section h2 {
-      margin-bottom: 0.5rem;
-    }
-    code {
-      background: #eee;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-    }
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f4f4; }
+    h1 { font-size: 24px; }
+    .combo { background: #fff; padding: 1rem; margin-bottom: 1rem; border-left: 5px solid #0073e6; }
+    .logic { font-size: 14px; color: #555; margin-top: 0.5rem; }
+    code { background: #eee; padding: 2px 4px; border-radius: 4px; }
+    .result { margin: 0.3rem 0; }
   </style>
 </head>
 <body>
-  <h1>Cloudflare Bot & WAF Detection</h1>
+  <h1>Cloudflare Detection Report</h1>
   <div id="results-container">Loading...</div>
 
   <script>
-    function safeLower(val) {
-      return typeof val === 'string' ? val.toLowerCase() : '';
-    }
-
-    function safeStr(val) {
-      return val !== null && val !== undefined ? String(val) : 'N/A';
-    }
-
-    function tagUserAgent(ua) {
-      if (!ua) return '(Missing)';
-      const uaStr = ua.toLowerCase();
-      if (uaStr.includes('headless') || uaStr.includes('phantom')) return '(Suspicious)';
-      if (uaStr.includes('chrome') || uaStr.includes('firefox') || uaStr.includes('safari')) return '(Legitimate browser)';
-      return '(Unknown)';
-    }
-
-    function tagASN(asn) {
-      const cloudASNs = ['google', 'amazon', 'aws', 'microsoft', 'cloudflare'];
-      const asnStr = safeLower(asn);
-      if (!asnStr || asnStr === 'n/a') return '(ASN missing)';
-      return cloudASNs.some(name => asnStr.includes(name)) ? '(Cloud provider)' : '(Likely user)';
-    }
-
-    function tagBotScore(score) {
-      const num = parseFloat(score);
-      if (isNaN(num)) return '(No bot score)';
-      if (num < 30) return '(Likely bot)';
-      if (num > 70) return '(Likely human)';
-      return '(Uncertain)';
-    }
-
-    function tagWAFAction(action) {
-      if (!action) return '(No WAF action)';
-      const act = action.toLowerCase();
-      if (act.includes('challenge') || act.includes('block')) return '(Blocked or challenged)';
-      return '(Allowed)';
-    }
-
     async function fetchDetectionData() {
       try {
         const res = await fetch('/js-detection');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-
-        const container = document.getElementById('results-container');
-        container.innerHTML = '';
-
-        container.innerHTML = `
-          <div class="section">
-            <h2>User Agent & ASN</h2>
-            <p><strong>UserAgent:</strong> ${safeStr(data.userAgent)} ${tagUserAgent(data.userAgent)}</p>
-            <p><strong>ASN:</strong> ${safeStr(data.asn)} ${tagASN(data.asn)}</p>
-            <p><em>User Agent is checked against known browser strings. ASN checked against cloud providers or suspicious sources.</em></p>
-          </div>
-
-          <div class="section">
-            <h2>Bot Score & WAF Scores</h2>
-            <p><strong>BotScore:</strong> ${safeStr(data.botScore)} ${tagBotScore(data.botScore)}</p>
-            <p><strong>WAFAction:</strong> ${safeStr(data.wafAction)} ${tagWAFAction(data.wafAction)}</p>
-            <p><strong>WAFScore:</strong> ${safeStr(data.wafScore)}</p>
-            <p><em>BotScore below ~30 suggests bot-like behavior. High WAFScore and actions like js_challenge indicate potential threat or challenge triggered.</em></p>
-          </div>
-
-          <div class="section">
-            <h2>Referer & Origin</h2>
-            <p><strong>Referer:</strong> ${safeStr(data.referer)}</p>
-            <p><strong>Origin:</strong> ${safeStr(data.origin)}</p>
-            <p><em>Referer and Origin headers compared to detect suspicious or missing values.</em></p>
-          </div>
-
-          <div class="section">
-            <h2>TLS Fingerprints</h2>
-            <p><strong>JA3:</strong> ${safeStr(data.ja3)}</p>
-            <p><strong>JA4:</strong> ${safeStr(data.ja4)}</p>
-            <p><em>JA3 and JA4 are TLS fingerprints; matching values indicate consistent client fingerprint.</em></p>
-          </div>
-
-          <div class="section">
-            <h2>Other Headers</h2>
-            <p><strong>BotManagementDetectionID:</strong> ${safeStr(data.botManagementDetectionId)}</p>
-            <p><strong>CF-Ray:</strong> ${safeStr(data.cfRay)}</p>
-            <p><strong>X-Forwarded-For:</strong> ${safeStr(data.xForwardedFor)}</p>
-            <p><strong>X-Client-IP:</strong> ${safeStr(data.xClientIP)}</p>
-            <p><strong>CF-Connecting-IP:</strong> ${safeStr(data.cfConnectingIP)}</p>
-            <p><strong>CF-Visitor:</strong> ${safeStr(data.cfVisitor)}</p>
-            <p><strong>CF-Request-UUID:</strong> ${safeStr(data.cfRequestUUID)}</p>
-            <p><em>Additional Cloudflare headers useful for diagnostics and identification.</em></p>
-          </div>
-        `;
+        renderDetectionCombos(data);
       } catch (err) {
-        document.getElementById('results-container').textContent = 'Failed to fetch detection data: ' + err.message;
-        console.error(err);
+        document.getElementById('results-container').innerText =
+          'Failed to fetch detection data: ' + err.message;
       }
     }
+
+    function renderDetectionCombos(data) {
+      const container = document.getElementById('results-container');
+      container.innerHTML = '';
+
+      function field(key) {
+        return `<div class="result"><strong>${key}:</strong> <code>${data[key] ?? 'N/A'}</code></div>`;
+      }
+
+      function combo(title, logic, keys) {
+        return `
+          <div class="combo">
+            <h2>${title}</h2>
+            ${keys.map(field).join('')}
+            <div class="logic"><strong>Why it works:</strong> ${logic}</div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = [
+        combo("1. Low-Trust Headless Automation",
+          "Headless UAs with automation typically fail JS challenges and get low bot scores.",
+          ["userAgent", "navigator.webdriver", "botScore", "wafAction"]),
+
+        combo("2. Cloud Infrastructure Bots",
+          "Legit browsers from cloud ASNs are rare and often coupled with scraping behavior.",
+          ["asn", "userAgent", "botScore", "wafScore"]),
+
+        combo("3. Spoofed Browsers with Bad TLS",
+          "TLS fingerprints and versions must match claimed UA. Spoofing usually mismatches.",
+          ["userAgent", "ja3", "ja4", "wafScore"]),
+
+        combo("4. Language & Region Mismatch",
+          "Language and IP geo should correlate. Disparity = proxy or misconfigured bot.",
+          ["cfCountry", "accept-language", "userAgent", "wafScore"]),
+
+        combo("5. Bypassed Browser Validation",
+          "Legit browsers send a full set of client hints and cookies. Bots often skip these.",
+          ["cookie", "sec-ch-ua", "sec-fetch-site", "botScore"]),
+
+        combo("6. Suspicious Referer Chain",
+          "Bots often lack proper referer/Origin chains or spoof them sloppily.",
+          ["referer", "origin", "wafAction", "ja3"]),
+
+        combo("7. Verified Bot Impersonators",
+          "Cloudflare validates real Googlebot IPs. Mismatch of UA + ASN = fake bot.",
+          ["userAgent", "verifiedBot", "asn", "botScore"])
+      ].join('');
+    }
+
+    // Add JS-based detection
+    window.addEventListener('load', () => {
+      navigator.webdriver
+        ? sessionStorage.setItem('navigator.webdriver', 'true')
+        : sessionStorage.setItem('navigator.webdriver', 'false');
+
+      fetchDetectionData().then(() => {
+        const injected = sessionStorage.getItem('navigator.webdriver');
+        const el = document.querySelector("code:contains('navigator.webdriver')");
+        if (el) el.textContent = injected;
+      });
+    });
+  </script>
+</body>
+</html>
 
     fetchDetectionData();
   </script>
