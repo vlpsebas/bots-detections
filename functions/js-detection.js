@@ -8,7 +8,7 @@ export async function onRequest(context) {
   // 🔁 Fetch additional data from the bound Worker
   let workerData = {};
   try {
-    const workerRes = await env.WORKER.fetch(new Request("https://dummy.internal", {
+    const workerRes = await env.WORKER.fetch(new Request("/", {
       headers: request.headers,
       method: "GET",
     }));
