@@ -18,34 +18,32 @@
   <div id="results-container">Loading...</div>
 
   <script>
-    async function fetchDetectionData() {
-      try {
-        const res = await fetch('/js-detection');
-        const data = await Res.json();
-        renderDetectionCombos(data);
-      } catch (err) {
-        document.getElementById('results-container').innerText =
-          'Failed to fetch detection data: ' + err.message;
-      }
-    }
-
-
-    async function fetchDetectionData() {
+  async function fetchDetectionData() {
     try {
-      // Fetch data from worker endpoint
-      const workerRes = await fetch('/worker-detection');
-      if (!workerRes.ok) throw new Error('Worker fetch failed');
-      const workerData = await workerRes.json();
+      const [workerRes, jsRes] = await Promise.all([
+        fetch('/worker-detection'),
+        fetch('/js-detection')
+      ]);
 
-      // Fetch data from js-detection endpoint
-      const jsRes = await fetch('/js-detection');
-      if (!jsRes.ok) throw new Error('js-detection fetch failed');
-      const jsData = await jsRes.json();
+      if (!workerRes.ok || !jsRes.ok) throw new Error('Fetch failed');
 
-      // Merge the two objects (workerData overwrites jsData if keys overlap)
+      const [workerData, jsData] = await Promise.all([
+        workerRes.json(),
+        jsRes.json()
+      ]);
+
       const data = { ...jsData, ...workerData };
 
       renderDetectionCombos(data);
+
+      // Inject navigator.webdriver into the final output
+      const injected = sessionStorage.getItem('navigator.webdriver');
+      const codeElements = document.querySelectorAll("code");
+      codeElements.forEach(el => {
+        if (el.textContent.includes('navigator.webdriver')) {
+          el.textContent = injected;
+        }
+      });
 
     } catch (err) {
       document.getElementById('results-container').innerText =
@@ -53,10 +51,14 @@
     }
   }
 
+  window.addEventListener('load', () => {
+    sessionStorage.setItem('navigator.webdriver', navigator.webdriver ? 'true' : 'false');
+    fetchDetectionData();
+  })
     
-    function renderDetectionCombos(data) {
-      const container = document.getElementById('results-container');
-      container.innerHTML = '';
+      function renderDetectionCombos(data) {
+        const container = document.getElementById('results-container');
+          container.innerHTML = '';
 
       function field(key) {
         return `<div class="result"><strong>${key}:</strong> <code>${data[key] ?? 'N/A'}</code></div>`;
