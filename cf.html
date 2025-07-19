@@ -21,7 +21,7 @@
     async function fetchDetectionData() {
       try {
         const res = await fetch('/js-detection');
-        const data = await res.json();
+        const data = await Res.json();
         renderDetectionCombos(data);
       } catch (err) {
         document.getElementById('results-container').innerText =
@@ -29,6 +29,31 @@
       }
     }
 
+
+    async function fetchDetectionData() {
+    try {
+      // Fetch data from worker endpoint
+      const workerRes = await fetch('/worker-detection');
+      if (!workerRes.ok) throw new Error('Worker fetch failed');
+      const workerData = await workerRes.json();
+
+      // Fetch data from js-detection endpoint
+      const jsRes = await fetch('/js-detection');
+      if (!jsRes.ok) throw new Error('js-detection fetch failed');
+      const jsData = await jsRes.json();
+
+      // Merge the two objects (workerData overwrites jsData if keys overlap)
+      const data = { ...jsData, ...workerData };
+
+      renderDetectionCombos(data);
+
+    } catch (err) {
+      document.getElementById('results-container').innerText =
+        'Failed to fetch detection data from worker/js-detection: ' + err.message;
+    }
+  }
+
+    
     function renderDetectionCombos(data) {
       const container = document.getElementById('results-container');
       container.innerHTML = '';
@@ -50,15 +75,15 @@
       container.innerHTML = [
         combo("1. Low-Trust Headless Automation",
           "Headless UAs with automation typically fail JS challenges and get low bot scores.",
-          ["userAgent", "navigator.webdriver", "botScore", "wafAction"]),
+          ["userAgent", "sec-ch-ua", "navigator.webdriver", "botScore", "wafAction"]),
 
         combo("2. Cloud Infrastructure Bots",
           "Legit browsers from cloud ASNs are rare and often coupled with scraping behavior.",
-          ["asn", "userAgent", "botScore", "wafScore"]),
+          ["asn", "userAgent", "botScore", "wafScore", "sec-ch-ua-platform"]),
 
         combo("3. Spoofed Browsers with Bad TLS",
           "TLS fingerprints and versions must match claimed UA. Spoofing usually mismatches.",
-          ["userAgent", "ja3", "ja4", "wafScore"]),
+          ["userAgent", "ja3", "ja4", "sec-ch-ua-platform", "wafScore"]),
 
         combo("4. Language & Region Mismatch",
           "Language and IP geo should correlate. Disparity = proxy or misconfigured bot.",
@@ -66,15 +91,15 @@
 
         combo("5. Bypassed Browser Validation",
           "Legit browsers send a full set of client hints and cookies. Bots often skip these.",
-          ["cookie", "sec-ch-ua", "sec-fetch-site", "botScore"]),
+          ["cookie", "sec-ch-ua", "sec-fetch-site", "sec-ch-mobile", "botScore"]),
 
         combo("6. Suspicious Referer Chain",
           "Bots often lack proper referer/Origin chains or spoof them sloppily.",
-          ["referer", "origin", "wafAction", "ja3"]),
+          ["referer", "origin", "sec-fetch-site", "wafAction", "ja3"]),
 
         combo("7. Verified Bot Impersonators",
           "Cloudflare validates real Googlebot IPs. Mismatch of UA + ASN = fake bot.",
-          ["userAgent", "verifiedBot", "asn", "botScore"])
+          ["userAgent", "asn", "verifiedBot", "botScore"])
       ].join('');
     }
 
