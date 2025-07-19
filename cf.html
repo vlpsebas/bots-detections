@@ -78,16 +78,18 @@
         combo("6. Suspicious Referer Chain",
           "Bots often lack proper referer/Origin chains or spoof them sloppily.",
           ["referer", "origin", "secFetchSite", "wafAction", "ja3"]),
-
+        
         combo("7. Verified Bot Impersonators",
           "Cloudflare validates real Googlebot IPs. Mismatch of UA + ASN = fake bot.",
           ["userAgent", "asn", "verifiedBot", "botScore"])
       ].join('');
     }
 
+        // Add JS-based detection
     window.addEventListener('load', () => {
       sessionStorage.setItem('navigator.webdriver', navigator.webdriver ? 'true' : 'false');
       fetchDetectionData();
+      
     });
   </script>
 </body>
