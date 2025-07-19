@@ -47,6 +47,40 @@
         `;
       }
 
+      async function fetchDetectionData() {
+  try {
+    const [pagesRes, workerRes] = await Promise.all([
+      fetch('/js-detection'),
+      fetch('https://your-worker.your-account.workers.dev') // replace with real Worker URL
+    ]);
+
+    if (!pagesRes.ok || !workerRes.ok) {
+      throw new Error('Fetch failed');
+    }
+
+    const pagesData = await pagesRes.json();
+    const workerData = await workerRes.json();
+
+    const data = {
+      ...pagesData,
+      ...workerData
+    };
+
+    const tags = analyzeAndTag(data);
+    const container = document.getElementById('results-container');
+    container.innerHTML = '';
+
+    // Continue rendering UI as before...
+    // User Agent & ASN, Bot Score & WAF, TLS Fingerprints, etc.
+
+  } catch (e) {
+    const container = document.getElementById('results-container');
+    container.textContent = `Failed to fetch detection data: ${e.message}`;
+    container.style.color = 'red';
+  }
+}
+
+    
       container.innerHTML = [
         combo("1. Low-Trust Headless Automation",
           "Headless UAs with automation typically fail JS challenges and get low bot scores.",
