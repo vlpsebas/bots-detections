@@ -18,87 +18,27 @@
   <div id="results-container">Loading...</div>
 
   <script>
-async function fetchDetectionData() {
-  console.log('Fetching detection data...');
-  try {
-    // Fetch from both endpoints
     async function fetchDetectionData() {
-  try {
-    console.log('Fetching from both endpoints...');
+      try {
+        const res = await fetch('/js-detection');
+        if (!res.ok) throw new Error('js-detection fetch failed');
+        const data = await res.json();
 
-    // Fetch both in parallel
-    const [workerRes, jsRes] = await Promise.all([
-      fetch('/worker-detection'),
-      fetch('/js-detection')
-    ]);
+        const navigatorValue = sessionStorage.getItem('navigator.webdriver');
+        data["navigator.webdriver"] = navigatorValue;
 
-    if (!workerRes.ok) throw new Error('worker-detection fetch failed');
-    if (!jsRes.ok) throw new Error('js-detection fetch failed');
-
-    const [workerData, jsData] = await Promise.all([
-      workerRes.json(),
-      jsRes.json()
-    ]);
-
-    console.log('Worker data:', workerData);
-    console.log('JS data:', jsData);
-
-    const data = { ...jsData, ...workerData };
-    console.log('Final merged data:', data);
-
-    renderDetectionCombos(data);
-
-  } catch (err) {
-    console.error('Detection error:', err);
-    document.getElementById('results-container').innerText =
-      'Failed to fetch detection data from worker/js-detection: ' + err.message;
-  }
-}
-
-    // Read both as text first to debug if needed
-    const workerText = await workerRes.text();
-    const jsText = await jsRes.text();
-
-    // Parse JSON manually
-    const workerData = JSON.parse(workerText);
-    const jsData = JSON.parse(jsText);
-
-    // Merge both
-    const data = { ...jsData, ...workerData };
-
-    renderDetectionCombos(data);
-
-  } catch (err) {
-    console.error('Detection error:', err);
-    document.getElementById('results-container').innerText =
-      'Failed to fetch detection data from worker/js-detection: ' + err.message;
-    console.error('Detection fetch error:', err);
-  }
-}
-
-      // Inject navigator.webdriver into the final output
-      const injected = sessionStorage.getItem('navigator.webdriver');
-      const codeElements = document.querySelectorAll("code");
-      codeElements.forEach(el => {
-        if (el.textContent.includes('navigator.webdriver')) {
-          el.textContent = injected;
-        }
-      });
-
-    } catch (err) {
-      console.error('Detection error:', err);
-      document.getElementById('results-container').innerText =
-        'Failed to fetch detection data from worker/js-detection: ' + err.message;
+        console.log('Final merged data:', data);
+        renderDetectionCombos(data);
+      } catch (err) {
+        console.error('Detection error:', err);
+        document.getElementById('results-container').innerText =
+          'Failed to fetch detection data: ' + err.message;
+      }
     }
-  }
 
-  window.addEventListener('load', () => {
-    sessionStorage.setItem('navigator.webdriver', navigator.webdriver ? 'true' : 'false');
-  })
-    
-      function renderDetectionCombos(data) {
-        const container = document.getElementById('results-container');
-          container.innerHTML = '';
+    function renderDetectionCombos(data) {
+      const container = document.getElementById('results-container');
+      container.innerHTML = '';
 
       function field(key) {
         return `<div class="result"><strong>${key}:</strong> <code>${data[key] ?? 'N/A'}</code></div>`;
@@ -117,51 +57,39 @@ async function fetchDetectionData() {
       container.innerHTML = [
         combo("1. Low-Trust Headless Automation",
           "Headless UAs with automation typically fail JS challenges and get low bot scores.",
-          ["userAgent", "sec-ch-ua", "navigator.webdriver", "botScore", "wafAction"]),
+          ["userAgent", "secChUa", "navigator.webdriver", "botScore", "wafAction"]),
 
         combo("2. Cloud Infrastructure Bots",
           "Legit browsers from cloud ASNs are rare and often coupled with scraping behavior.",
-          ["asn", "userAgent", "botScore", "wafScore", "sec-ch-ua-platform"]),
+          ["asn", "userAgent", "botScore", "wafScore", "secChUaPlatform"]),
 
         combo("3. Spoofed Browsers with Bad TLS",
           "TLS fingerprints and versions must match claimed UA. Spoofing usually mismatches.",
-          ["userAgent", "ja3", "ja4", "sec-ch-ua-platform", "wafScore"]),
+          ["userAgent", "ja3", "ja4", "secChUaPlatform", "wafScore"]),
 
         combo("4. Language & Region Mismatch",
           "Language and IP geo should correlate. Disparity = proxy or misconfigured bot.",
-          ["cfCountry", "accept-language", "userAgent", "wafScore"]),
+          ["country", "acceptLanguage", "userAgent", "wafScore"]),
 
         combo("5. Bypassed Browser Validation",
           "Legit browsers send a full set of client hints and cookies. Bots often skip these.",
-          ["cookie", "sec-ch-ua", "sec-fetch-site", "sec-ch-mobile", "botScore"]),
+          ["cookie", "secChUa", "secFetchSite", "secChUaMobile", "botScore"]),
 
         combo("6. Suspicious Referer Chain",
           "Bots often lack proper referer/Origin chains or spoof them sloppily.",
-          ["referer", "origin", "sec-fetch-site", "wafAction", "ja3"]),
-
+          ["referer", "origin", "secFetchSite", "wafAction", "ja3"]),
+        
         combo("7. Verified Bot Impersonators",
           "Cloudflare validates real Googlebot IPs. Mismatch of UA + ASN = fake bot.",
           ["userAgent", "asn", "verifiedBot", "botScore"])
       ].join('');
     }
 
-    // Add JS-based detection
+        // Add JS-based detection
     window.addEventListener('load', () => {
-      navigator.webdriver
-        ? sessionStorage.setItem('navigator.webdriver', 'true')
-        : sessionStorage.setItem('navigator.webdriver', 'false');
-
-      fetchDetectionData().then(() => {
-        const injected = sessionStorage.getItem('navigator.webdriver');
-        const codes = document.querySelectorAll('code');
-codes.forEach(code => {
-  if (code.textContent.includes('navigator.webdriver')) {
-    code.textContent = sessionStorage.getItem('navigator.webdriver');
-  }
-});
-        
-        if (el) el.textContent = injected;
-      });
+      sessionStorage.setItem('navigator.webdriver', navigator.webdriver ? 'true' : 'false');
+      fetchDetectionData();
+      
     });
   </script>
 </body>

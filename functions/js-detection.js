@@ -8,20 +8,24 @@ export async function onRequest(context) {
   // 🔁 Fetch additional data from the bound Worker
   let workerData = {};
   try {
-    const workerRes = await env.WORKER.fetch("https://worker-detection", {
-      headers: request.headers, // Pass original headers
-    });
+
+    const workerRes = await env.WORKER.fetch(new Request("/", {
+      headers: request.headers,
+      method: "GET",
+    }));
 
     if (workerRes.ok) {
       workerData = await workerRes.json();
     } else {
-      workerData = { error: `Worker responded with ${workerRes.status}` };
+
+      workerData = { error: `Worker responded with status ${workerRes.status}` };
     }
   } catch (err) {
-    workerData = { error: "Worker fetch failed: " + err.message };
+    workerData = { error: `Worker fetch failed: ${err.message}` };
   }
 
-  // 🌍 Zone-scoped fields from request.cf
+  
+  // 🌍 Cloudflare CF & header metadata
   const result = {
     asn: cf.asn || null,
     colo: cf.colo || null,
@@ -29,6 +33,7 @@ export async function onRequest(context) {
     region: cf.region || null,
     country: cf.country || null,
     tlsCipher: cf.tlsCipher || null,
+
 
     // 🧠 Bot Management fields
     botScore: headerValue('cf-bot-score') || cf.botManagement?.score || null,
@@ -38,6 +43,7 @@ export async function onRequest(context) {
       verifiedBot: cf.botManagement?.verifiedBot ?? null
     },
 
+    
     // ⚠️ Security and diagnostics
     wafAction: headerValue('cf-waf-action'),
     wafScore: headerValue('cf-waf-score'),
@@ -46,10 +52,8 @@ export async function onRequest(context) {
     cfVisitor: headerValue('cf-visitor'),
     cfRequestUUID: headerValue('cf-request-uuid'),
 
-    // 🔍 TLS fingerprints
-    ja3: headerValue('cf-ja3') || cf.ja3 || null,
     ja4: headerValue('cf-ja4') || null,
-
+    
     // 🧾 Network metadata
     userAgent: headerValue('user-agent'),
     referer: headerValue('referer'),
@@ -58,6 +62,7 @@ export async function onRequest(context) {
     xClientIP: headerValue('x-client-ip'),
     cfConnectingIP: headerValue('cf-connecting-ip'),
   };
+
 
   // 🔀 Merge workerData into main result
   const merged = { ...result, ...workerData };
