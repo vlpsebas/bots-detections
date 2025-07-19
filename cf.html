@@ -19,12 +19,41 @@
 
   <script>
 async function fetchDetectionData() {
+  console.log('Fetching detection data...');
   try {
     // Fetch from both endpoints
+    async function fetchDetectionData() {
+  try {
+    console.log('Fetching from both endpoints...');
+
+    // Fetch both in parallel
     const [workerRes, jsRes] = await Promise.all([
       fetch('/worker-detection'),
       fetch('/js-detection')
     ]);
+
+    if (!workerRes.ok) throw new Error('worker-detection fetch failed');
+    if (!jsRes.ok) throw new Error('js-detection fetch failed');
+
+    const [workerData, jsData] = await Promise.all([
+      workerRes.json(),
+      jsRes.json()
+    ]);
+
+    console.log('Worker data:', workerData);
+    console.log('JS data:', jsData);
+
+    const data = { ...jsData, ...workerData };
+    console.log('Final merged data:', data);
+
+    renderDetectionCombos(data);
+
+  } catch (err) {
+    console.error('Detection error:', err);
+    document.getElementById('results-container').innerText =
+      'Failed to fetch detection data from worker/js-detection: ' + err.message;
+  }
+}
 
     // Read both as text first to debug if needed
     const workerText = await workerRes.text();
@@ -40,6 +69,7 @@ async function fetchDetectionData() {
     renderDetectionCombos(data);
 
   } catch (err) {
+    console.error('Detection error:', err);
     document.getElementById('results-container').innerText =
       'Failed to fetch detection data from worker/js-detection: ' + err.message;
     console.error('Detection fetch error:', err);
@@ -56,6 +86,7 @@ async function fetchDetectionData() {
       });
 
     } catch (err) {
+      console.error('Detection error:', err);
       document.getElementById('results-container').innerText =
         'Failed to fetch detection data from worker/js-detection: ' + err.message;
     }
