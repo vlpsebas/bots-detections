@@ -20,7 +20,7 @@
   <script>
     async function fetchDetectionData() {
       try {
-        const res = await fetch('/api/js-detection');
+        const res = await fetch('/js-detection');
         const data = await res.json();
         renderDetectionCombos(data);
       } catch (err) {
