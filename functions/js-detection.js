@@ -57,6 +57,7 @@ export async function onRequest(context) {
     cfRequestUUID: headerValue('cf-request-uuid'),
     ja3: headerValue('cf-ja3-hash') || null,
     ja4: headerValue('cf-ja4') || null,
+    cookie: headerValue('cookie') || null,
     
     // 🧾 Network metadata
     userAgent: headerValue('user-agent'),
