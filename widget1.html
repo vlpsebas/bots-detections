@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Widget 1</title>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+  <h1>Widget 1</h1>
+  <div class="cf-turnstile" data-sitekey="YOUR_SITE_KEY_1" data-callback="onTurnstileSuccess"></div>
+
+  <script>
+    async function onTurnstileSuccess(token) {
+      try {
+        const res = await fetch('/api/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, widget: 'widget1' })
+        });
+        const data = await res.json();
+        console.log('Turnstile logged:', data);
+        alert(`Widget 1 verified: ${data.success}`);
+      } catch (err) {
+        console.error('Error logging Turnstile:', err);
+      }
+    }
+  </script>
+
+  <button onclick="window.location.href='index.html'">Back to home</button>
+</body>
+</html>
