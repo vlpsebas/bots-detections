@@ -42,7 +42,8 @@ export async function onRequest(context) {
       corporateProxy: cf.botManagement?.corporateProxy ?? null,
       verifiedBot: cf.botManagement?.verifiedBot ?? null,
       botDetectionId: cf.botManagement?.detectionIds ?? null,
-      verifiedBotCategory: cf.verifiedBotCategory ?? null
+      verifiedBotCategory: cf.verifiedBotCategory ?? null,
+      jsDpassed: cf.botManagement?.jsDetection.passed ?? null
     },
 
     
@@ -58,6 +59,8 @@ export async function onRequest(context) {
     cookie: headerValue('cookie') || null,
     botScore: cf.botManagement?.score ?? null,
     verifiedBot: cf.botManagement?.verifiedBot ?? null,
+    jsDpassed: cf.botManagement?.jsDetection.passed ?? null,
+    botDetectionId: cf.botManagement?.detectionIds ?? null,
     
     // 🧾 Network metadata
     userAgent: headerValue('user-agent'),
