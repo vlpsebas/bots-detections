@@ -51,7 +51,7 @@ export async function onRequest(context) {
     cfRay: headerValue('cf-ray'),
     cfVisitor: headerValue('cf-visitor'),
     cfRequestUUID: headerValue('cf-request-uuid'),
-    ja3: headerValue('cf-ja3') || null,
+    ja3: headerValue('cf-ja3-hash') || null,
     ja4: headerValue('cf-ja4') || null,
     
     // 🧾 Network metadata
