@@ -37,7 +37,7 @@ export async function onRequest(context) {
 
     // 🧠 Bot Management fields
     //botScore: headerValue('cf-bot-score') || cf.botManagement?.score || null,
-    botScore: cf.botManagement?.score || null,
+    botScore: cf.botManagement?.score || headerValue('cf-bot-score') || null,
     verifiedBot: cf.botManagement?.verifiedBot ?? null,
     botManagement: {
       score: cf.botManagement?.score ?? null,
