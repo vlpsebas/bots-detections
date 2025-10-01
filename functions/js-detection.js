@@ -49,7 +49,7 @@ export async function onRequest(context) {
     // ⚠️ Security and diagnostics
     wafAction: headerValue('cf-waf-action'),
     wafScore: headerValue('cf-waf-score'),
-    botManagementDetectionId: headerValue('cf-bot-management-detection-id'),
+//    botManagementDetectionId: headerValue('cf-bot-management-detection-id'),
     cfRay: headerValue('cf-ray'),
     cfVisitor: headerValue('cf-visitor'),
     cfRequestUUID: headerValue('cf-request-uuid'),
