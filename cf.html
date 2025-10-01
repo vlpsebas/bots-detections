@@ -57,15 +57,15 @@
       container.innerHTML = [
         combo("1. Low-Trust Headless Automation",
           "Headless UAs with automation typically fail JS challenges and get low bot scores.",
-          ["userAgent", "secChUa", "navigator.webdriver", "botScore", "wafAction"]),
+          ["userAgent", "secChUa", "navigator.webdriver", "botScore", "wafScore"]),
 
         combo("2. Cloud Infrastructure Bots",
-          "Legit browsers from cloud ASNs are rare and often coupled with scraping behavior.",
-          ["asn", "userAgent", "botScore", "wafScore", "secChUaPlatform"]),
+          "Legit browsers from cloud ASNs are rare and often coupled with scraping or exploit payloads.",
+          ["asn", "userAgent", "botScore", "wafScore", "wafSQLi", "wafXSS", "wafRCE", "secChUaPlatform"]),
 
         combo("3. Spoofed Browsers with Bad TLS",
-          "TLS fingerprints and versions must match claimed UA. Spoofing usually mismatches.",
-          ["userAgent", "ja3", "ja4", "secChUaPlatform", "wafScore"]),
+          "TLS fingerprints and versions must match claimed UA. Spoofing often overlaps with injection attempts.",
+          ["userAgent", "ja3", "ja4", "secChUaPlatform", "wafScore", "wafSQLi", "wafXSS"]),
 
         combo("4. Language & Region Mismatch",
           "Language and IP geo should correlate. Disparity = proxy or misconfigured bot.",
@@ -76,8 +76,8 @@
           ["cookie", "secChUa", "secFetchSite", "secChUaMobile", "botScore"]),
 
         combo("6. Suspicious Referer Chain",
-          "Bots often lack proper referer/Origin chains or spoof them sloppily.",
-          ["referer", "origin", "secFetchSite", "wafAction", "ja3"]),
+          "Bots often lack proper referer/Origin chains or spoof them sloppily. XSS vectors sometimes abuse referrer headers.",
+          ["referer", "origin", "secFetchSite", "wafScore", "ja3", "wafXSS"]),
         
         combo("7. Verified Bot Impersonators",
           "Cloudflare validates real Googlebot IPs. Mismatch of UA + ASN = fake bot.",
