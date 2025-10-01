@@ -36,11 +36,13 @@ export async function onRequest(context) {
 
 
     // 🧠 Bot Management fields
-    botScore: headerValue('cf-bot-score') || cf.botManagement?.score || null,
+    //botScore: headerValue('cf-bot-score') || cf.botManagement?.score || null,
     botManagement: {
       score: cf.botManagement?.score ?? null,
       corporateProxy: cf.botManagement?.corporateProxy ?? null,
-      verifiedBot: cf.botManagement?.verifiedBot ?? null
+      verifiedBot: cf.botManagement?.verifiedBot ?? null,
+      botDetectionId: cf.botManagement?.detectionIds ?? null,
+      verifiedBotCategory: cf.verifiedBotCategory ?? null
     },
 
     
