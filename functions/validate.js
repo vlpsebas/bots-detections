@@ -5,9 +5,19 @@ export async function onRequestPost({ request, env }) {
     return new Response(JSON.stringify({ success: false, error: 'No token' }), { status: 400 });
   }
 
-  const secret = env.TURNSTILE_SECRET; // your Turnstile secret key
+  // Map widget names to their TURNSTILE_SECRET bindings
+  const secretMap = {
+    widget1: env.TURNSTILE_SECRET_1,
+    widget2: env.TURNSTILE_SECRET_2,
+    widget3: env.TURNSTILE_SECRET_3
+  };
 
-  // Verify token with Turnstile API
+  const secret = secretMap[widget];
+  if (!secret) {
+    return new Response(JSON.stringify({ success: false, error: 'Unknown widget' }), { status: 400 });
+  }
+
+  // Verify token with the correct Turnstile secret
   const cfResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -16,10 +26,8 @@ export async function onRequestPost({ request, env }) {
 
   const cfData = await cfResponse.json();
 
-  // Log in Pages Function logs (optional, for debugging)
   console.log(`Turnstile response for ${widget}:`, cfData);
 
-  // Return verification result to frontend
   return new Response(JSON.stringify(cfData), {
     headers: { 'Content-Type': 'application/json' }
   });
