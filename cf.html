@@ -57,7 +57,7 @@
       container.innerHTML = [
         combo("1. Low-Trust Headless Automation",
           "Headless UAs with automation typically fail JS challenges and get low bot scores.",
-          ["userAgent", "secChUa", "navigator.webdriver", "botScore", "wafScore"]),
+          ["userAgent", "secChUa", "navigator.webdriver", "botScore", "wafScore", "jsDpassed"]),
 
         combo("2. Cloud Infrastructure Bots",
           "Legit browsers from cloud ASNs are rare and often coupled with scraping or exploit payloads.",
@@ -73,7 +73,7 @@
 
         combo("5. Bypassed Browser Validation",
           "Legit browsers send a full set of client hints and cookies. Bots often skip these.",
-          ["cookie", "secChUa", "secFetchSite", "secChUaMobile", "botScore"]),
+          ["cookie", "secChUa", "secFetchSite", "secChUaMobile", "botScore", "jsDpassed"]),
 
         combo("6. Suspicious Referer Chain",
           "Bots often lack proper referer/Origin chains or spoof them sloppily. XSS vectors sometimes abuse referrer headers.",
