@@ -61,7 +61,7 @@
 
         combo("2. Cloud Infrastructure Bots",
           "Legit browsers from cloud ASNs are rare and often coupled with scraping or exploit payloads.",
-          ["asn", "userAgent", "botScore", "wafScore", "wafSQLi", "wafXSS", "wafRCE", "secChUaPlatform"]),
+          ["asn", "userAgent", "botScore", { wafMetrics: "wafScore", "wafSQLi", "wafXSS", "wafRCE"}, "secChUaPlatform"]),
 
         combo("3. Spoofed Browsers with Bad TLS",
           "TLS fingerprints and versions must match claimed UA. Spoofing often overlaps with injection attempts.",
