@@ -9,7 +9,7 @@ export async function onRequest(context) {
   let workerData = {};
   try {
 
-    const workerRes = await env.WORKER.fetch(new Request("/", {
+    const workerRes = await env.WORKER.fetch(new Request("worker-detection.vsebas.workers.dev", {
       headers: request.headers,
       method: "GET",
     }));
