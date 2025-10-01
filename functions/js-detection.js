@@ -37,7 +37,7 @@ export async function onRequest(context) {
 
     // 🧠 Bot Management fields
     //botScore: headerValue('cf-bot-score') || cf.botManagement?.score || null,
-    botScore: cf.botManagement?.score || headerValue('cf-bot-score') || null,
+    botScore: cf.botManagement?.score || null,
     verifiedBot: cf.botManagement?.verifiedBot ?? null,
     botManagement: {
       score: cf.botManagement?.score ?? null,
@@ -58,6 +58,7 @@ export async function onRequest(context) {
     ja3: headerValue('cf-ja3-hash') || null,
     ja4: headerValue('cf-ja4') || null,
     cookie: headerValue('cookie') || null,
+    botScore: headerValue('cf-bot-score'),
     
     // 🧾 Network metadata
     userAgent: headerValue('user-agent'),
