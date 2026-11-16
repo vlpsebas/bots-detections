@@ -9,7 +9,8 @@ export async function onRequestPost({ request, env }) {
   const secretMap = {
     widget1: env.TURNSTILE_SECRET_1,
     widget2: env.TURNSTILE_SECRET_2,
-    widget3: env.TURNSTILE_SECRET_3
+    widget3: env.TURNSTILE_SECRET_3,
+    widget4: env.TURNSTILE_SECRET_4
   };
 
   const secret = secretMap[widget];
