@@ -19,6 +19,24 @@
       margin-bottom: 40px;
     }
 
+    /* Logo + widget container */
+    .brand-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+    }
+
+    .brand-box img {
+      height: 48px;      /* adjust logo size here */
+      width: auto;
+      max-width: 300px;
+    }
+
     .rounded-button {
       background-color: #4CAF50;
       border: none;
@@ -39,10 +57,8 @@
   <h1>Offlabel Widget</h1>
 
   <div class="brand-box">
-    <!-- CUSTOM LOGO: put the public R2 URL here -->
     <img src="https://bots-media.sunnylx.com/custom_logo/rose_logo.png" alt="Company logo">
 
-    <!-- Offlabel widget: put the new sitekey here -->
     <div class="cf-turnstile"
          data-sitekey="0x4AAAAAAB4YWRxLafuzLupU"
          data-callback="onTurnstileSuccess"
@@ -50,6 +66,8 @@
          data-offlabel-show-privacy="true"
          data-offlabel-show-help="true"></div>
   </div>
+
+  <button class="rounded-button" onclick="window.location.href='jsd.html'">Back to Home</button>
 
   <script>
     async function onTurnstileSuccess(token) {
@@ -67,6 +85,5 @@
       }
     }
   </script>
-  <button onclick="window.location.href='jsd.html'">Back to home</button>
 </body>
 </html>
