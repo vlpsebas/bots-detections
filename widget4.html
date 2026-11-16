@@ -3,11 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <title>Offlabel Widget</title>
+  <link rel="preconnect" href="https://challenges.cloudflare.com">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    .brand-box { display:inline-flex; flex-direction:column; align-items:center; gap:12px;
+                 padding:16px; border:1px solid #e5e5e5; border-radius:10px; }
+    .brand-box img { height:48px; width:auto; }
+  </style>
 </head>
 <body>
   <h1>Offlabel Widget</h1>
-  <div class="cf-turnstile" data-sitekey="0x4AAAAAAB4YWRxLafuzLupU" data-callback="onTurnstileSuccess"></div>
+
+  <div class="brand-box">
+    <!-- CUSTOM LOGO: put the public R2 URL here -->
+    <img src="https://bots-media.sunnylx.com/custom_logo/rose_logo.png" alt="Company logo">
+
+    <!-- Offlabel widget: put the new sitekey here -->
+    <div class="cf-turnstile"
+         data-sitekey="0x4AAAAAAB4YWRxLafuzLupU"
+         data-callback="onTurnstileSuccess"
+         data-theme="light"
+         data-offlabel-show-privacy="true"
+         data-offlabel-show-help="true"></div>
+  </div>
 
   <script>
     async function onTurnstileSuccess(token) {
@@ -15,11 +33,11 @@
         const res = await fetch('/api/validate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, widget: 'widget4' })
+          body: JSON.stringify({ token, widget: 'Offlabel Widget' })
         });
         const data = await res.json();
         console.log('Turnstile logged:', data);
-        alert(`Widget 4 verified: ${data.success}`);
+        alert(`Offlabel Widget verified: ${data.success}`);
       } catch (err) {
         console.error('Error logging Turnstile:', err);
       }
