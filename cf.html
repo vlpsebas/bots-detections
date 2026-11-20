@@ -11,9 +11,28 @@
     .logic { font-size: 14px; color: #555; margin-top: 0.5rem; }
     code { background: #eee; padding: 2px 4px; border-radius: 4px; }
     .result { margin: 0.3rem 0; }
+
+    /* [BACK TO MENU] fixed top-right button */
+    .back-button {
+      position: fixed;
+      top: 1.5rem;
+      right: 2rem;
+      padding: 0.6rem 1.2rem;
+      background: #555;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      z-index: 10;
+    }
+    .back-button:hover { background: #444; }
   </style>
 </head>
 <body>
+  <!-- [BACK TO MENU] -->
+  <button class="back-button" onclick="location.href='/'">Back to Main Menu</button>
+
   <h1>Cloudflare Detection Report</h1>
   <div id="results-container">Loading...</div>
 
@@ -36,12 +55,17 @@
       }
     }
 
+    // [ESCAPE] header values (User-Agent, Referer, Cookie…) are visitor-controlled: escape before inserting as HTML
+    const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
     function renderDetectionCombos(data) {
       const container = document.getElementById('results-container');
       container.innerHTML = '';
 
       function field(key) {
-        return `<div class="result"><strong>${key}:</strong> <code>${data[key] ?? 'N/A'}</code></div>`;
+        const v = data[key];
+        const shown = v == null ? 'N/A' : (typeof v === 'object' ? JSON.stringify(v) : v);
+        return `<div class="result"><strong>${key}:</strong> <code>${esc(shown)}</code></div>`;
       }
 
       function combo(title, logic, keys) {
@@ -78,18 +102,17 @@
         combo("6. Suspicious Referer Chain",
           "Bots often lack proper referer/Origin chains or spoof them sloppily. XSS vectors sometimes abuse referrer headers.",
           ["referer", "origin", "secFetchSite", "wafScore", "ja3", "wafXSS"]),
-        
+
         combo("7. Verified Bot Impersonators",
           "Cloudflare validates real Googlebot IPs. Mismatch of UA + ASN = fake bot.",
           ["userAgent", "asn", "verifiedBot", "botScore", "botDetectionId"])
       ].join('');
     }
 
-        // Add JS-based detection
+    // Add JS-based detection
     window.addEventListener('load', () => {
       sessionStorage.setItem('navigator.webdriver', navigator.webdriver ? 'true' : 'false');
       fetchDetectionData();
-      
     });
   </script>
 </body>
