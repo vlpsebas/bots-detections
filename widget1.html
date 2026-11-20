@@ -12,6 +12,8 @@
   .card > div { padding: 4px 0; border-top: 1px solid #eee; }
   .ok { color: #2e7d32; } .bad { color: #c62828; }
   pre { background: #f4f4f4; padding: 8px; overflow: auto; font-size: 12px; }
+    /* [MODE DESCRIPTOR] */
+  #desc { color: #555; font-size: 14px; margin: -8px 0 20px; text-align: center; white-space: pre-line; }
 </style>
 </head>
 <body>
@@ -34,15 +36,28 @@
 const WIDGET = 'widget1';
 
 // ===== [TEST MODES] Cloudflare test sitekeys to force each outcome =====
+  <!-- [MODE DESCRIPTOR] explains what the selected mode triggers -->
+  <p id="desc"></p>
 const KEYS = {
   real:        '0x4AAAAAAA4xZwlByN75XeEv',
   pass:        '1x00000000000000000000AA', // always passes (Siteverify then fails: dummy token)
   block:       '2x00000000000000000000AB', // always fails -> error-callback
   interactive: '3x00000000000000000000FF'  // forces checkbox
 };
+
 const q = new URLSearchParams(location.search).get('key');
 const MODE = q in KEYS ? q : 'real';
 document.getElementById('mode').textContent = MODE;
+// ===== [MODE DESCRIPTOR] text shown under the mode links =====
+const DESC = {
+  block:       'Unsolved challenge (?key=block)',
+  pass:        'Solved, but the token is invalid (?key=pass)',
+  interactive: "Checkbox shown, visitor doesn't click (challenge abandoned) (?key=interactive)",
+  real:        'Token reused (?key=real) - what happens if visitor copies the token after validation?\n' +
+               'What happens if visitor attempts to use this widget on another host?'
+};
+document.getElementById('desc').textContent = DESC[MODE];
+  
 
 // ===== [CDATA] page Ray ID (injected by _middleware.js) + session ID, joined with "_" =====
 const RAY = document.querySelector('meta[name="cf-ray"]')?.content || 'noray';
