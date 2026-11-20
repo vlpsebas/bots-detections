@@ -144,7 +144,7 @@ async function run() {
     'timeout-callback':     () => { log('widget', 'interactive challenge timed out', 'bad'); event('timeout'); },
     'unsupported-callback': () => { log('widget', 'browser unsupported', 'bad'); event('unsupported'); },
     'before-interactive-callback': () => log('widget', 'checkbox shown'),
-    'after-interactive-callback':  () => log('widget', 'checkbox clicked')
+    'after-interactive-callback':  () => log('widget', 'interactive step ended (clicked or timed out)')
   });
 }
 </script>
