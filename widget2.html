@@ -1,63 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Non-Interactive Challenge</title>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 50px;
-      background-color: #f9f9f9;
-    }
-
-    h1 {
-      margin-bottom: 40px;
-    }
-
-    .rounded-button {
-      background-color: #4CAF50;
-      border: none;
-      color: white;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 12px;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-
-    .rounded-button:hover {
-      background-color: #45a049;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Non-Interactive Widget</title>
+<style>
+  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 50px; background: #f9f9f9; }
+  button { background: #4CAF50; border: none; color: #fff; padding: 10px 20px; font-size: 16px; border-radius: 12px; cursor: pointer; margin: 20px 6px 0; }
+  /* [MODE DESCRIPTOR] */
+  #desc { color: #555; font-size: 14px; margin: -8px 0 20px; text-align: center; white-space: pre-line; }
+  /* [LOG UI] styles */
+  #log { width: 100%; max-width: 900px; margin-top: 30px; font-size: 13px; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
+  .card > div { padding: 4px 0; border-top: 1px solid #eee; }
+  .ok { color: #2e7d32; } .bad { color: #c62828; }
+  pre { background: #f4f4f4; padding: 8px; overflow: auto; font-size: 12px; }
+</style>
 </head>
 <body>
-  <h1>Non-interactive Widget</h1>
+<h1>Non-Interactive Widget</h1>
 
-  <div class="cf-turnstile"
-       data-sitekey="0x4AAAAAAB4YNRWGozB3yT5p"
-       data-callback="onTurnstileSuccess"></div>
+<!-- [TEST MODES] links -->
+<p>Mode: <b id="mode"></b> — <a href="?key=real">real</a> | <a href="?key=pass">pass</a> | <a href="?key=block">block</a> | <a href="?key=interactive">interactive</a></p>
 
-  <button class="rounded-button" onclick="window.location.href='jsd.html'">Back to Home</button>
+<!-- [MODE DESCRIPTOR] explains what the selected mode triggers -->
+<p id="desc"></p>
 
-  <script>
-    async function onTurnstileSuccess(token) {
-      try {
-        const res = await fetch('/api/validate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, widget: 'widget2' })
-        });
-        const data = await res.json();
-        console.log('Turnstile result:', data);
-        alert(`Widget 2 verified: ${data.success}`);
-      } catch (err) {
-        console.error('Error logging Turnstile:', err);
-      }
+<div id="widget"></div>
+<div>
+  <button onclick="run()">Run new challenge</button>
+  <button onclick="location.href='jsd.html'" style="background:#555">Back to Home</button>
+</div>
+
+<!-- [LOG UI] container -->
+<div id="log"></div>
+
+<script>
+// ===== [CORE] widget name = Turnstile "action" = secret lookup key in validate.js =====
+const WIDGET = 'widget2';
+
+// ===== [TEST MODES] Cloudflare test sitekeys to force each outcome =====
+const KEYS = {
+  real:        '0x4AAAAAAB4YNRWGozB3yT5p', // non-interactive sitekey
+  pass:        '1x00000000000000000000AA', // always passes (Siteverify then fails: dummy token)
+  block:       '2x00000000000000000000AB', // always fails -> error-callback
+  interactive: '3x00000000000000000000FF'  // forces checkbox
+};
+const q = new URLSearchParams(location.search).get('key');
+const MODE = q in KEYS ? q : 'real';
+document.getElementById('mode').textContent = MODE;
+
+// ===== [MODE DESCRIPTOR] text shown under the mode links =====
+const DESC = {
+  block:       'Unsolved challenge (?key=block)',
+  pass:        'Solved, but the token is invalid (?key=pass)',
+  interactive: "Checkbox shown, visitor doesn't click (challenge abandoned) (?key=interactive)\n" +
+               '(test key only - the real non-interactive widget never shows a checkbox)',
+  real:        'Token reused (?key=real) - what happens if visitor copies the token after validation?\n' +
+               'What happens if visitor attempts to use this widget on another host?'
+};
+document.getElementById('desc').textContent = DESC[MODE];
+
+// ===== [CDATA] page Ray ID (injected by _middleware.js) + session ID, joined with "_" =====
+const RAY = document.querySelector('meta[name="cf-ray"]')?.content || 'noray';
+const SESSION = crypto.randomUUID();
+const makeCdata = n => [RAY, SESSION, 'a' + n]; // edit to choose, e.g. [RAY, 'a' + n]
+
+// ===== [EDGE TRACE] visitor IP / colo / country as Cloudflare sees it =====
+const trace = fetch('/cdn-cgi/trace').then(r => r.text())
+  .then(t => Object.fromEntries(t.trim().split('\n').map(l => l.split('='))))
+  .catch(() => null);
+
+// ===== [ERROR CODES] client error code family -> meaning =====
+const explain = c => ({
+  '100': 'init problem, reload page',
+  '110': 'config problem (sitekey, domain, params, timeout)',
+  '200': 'cache or visitor clock problem',
+  '300': 'challenge failed (likely bot)',
+  '600': 'challenge failed (likely bot)'
+})[String(c).slice(0, 3)] || 'see Turnstile error docs';
+
+// ===== [SERVER] all calls go to /validate (token -> Siteverify, or client event -> log) =====
+const post = body => fetch('/validate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ widget: WIDGET, ...body })
+}).then(r => r.json()).catch(e => ({ decision: 'error', error: String(e) }));
+
+// ===== [LOG UI] new card per challenge; returns a log(source, text, cssClass, data) function =====
+function newCard(title) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<b></b>';
+  card.firstChild.textContent = title;
+  document.getElementById('log').prepend(card);
+  const t0 = performance.now();
+  return (src, text, cls = '', data) => {
+    const row = document.createElement('div');
+    row.className = cls;
+    row.textContent = `+${Math.round(performance.now() - t0)}ms [${src}] ${text}`;
+    if (data) {
+      const d = document.createElement('details');
+      d.innerHTML = '<summary>details</summary><pre></pre>';
+      d.lastChild.textContent = JSON.stringify(data, null, 2);
+      row.append(d);
     }
-  </script>
+    card.append(row);
+  };
+}
+
+// ===== [CORE] render widget explicitly with action + cData + callbacks =====
+let id = null, n = 0;
+async function run() {
+  if (id !== null) turnstile.remove(id);
+  const parts = makeCdata(++n), cdata = parts.join('_');
+  const log = newCard(`Challenge #${n} — cData ${JSON.stringify(parts)}`);
+
+  // [CLIENT EVENTS] send widget events to the server log, show the server's answer
+  const event = (name, code = null) => post({ type: 'client-event', cdata, event: name, code })
+    .then(d => log('worker', `logged "${name}" — ray ${d.ray} — ip ${d.ip}`, '', d));
+
+  log('browser', `render — mode ${MODE}, action ${WIDGET}`, '', { sitekey: KEYS[MODE], pageRay: RAY, session: SESSION, edge: await trace });
+
+  id = turnstile.render('#widget', {
+    sitekey: KEYS[MODE],
+    action: WIDGET,
+    cData: cdata,
+
+    // [VERIFY] token -> Siteverify via /validate, show decision + checks
+    callback: async token => {
+      log('widget', 'solved — token received', 'ok');
+      const d = await post({ token, cdata });
+      log('worker',
+        `${d.decision} — ip ${d.ip} AS${d.asn} ${d.country} ${d.colo}` +
+        ` — cData ${d.cdataMatch ? '✓' : '✗'} ${JSON.stringify(d.cdataReturnedParts)}` +
+        ` — action ${d.actionMatch ? '✓' : '✗'} — hostname ${d.hostnameMatch ? '✓' : '✗'}` +
+        (d.errorCodes?.length ? ` — errors: ${d.errorCodes.join(', ')}` : ''),
+        d.success ? 'ok' : 'bad', d);
+    },
+
+    // [CLIENT EVENTS] failure / lifecycle callbacks
+    'error-callback':       code => { log('widget', `error ${code}: ${explain(code)} (auto-retrying)`, 'bad'); event('error', code); return false; },
+    'expired-callback':     () => { log('widget', 'token expired (5 min)'); event('expired'); },
+    'timeout-callback':     () => { log('widget', 'interactive challenge timed out', 'bad'); event('timeout'); },
+    'unsupported-callback': () => { log('widget', 'browser unsupported', 'bad'); event('unsupported'); },
+    'before-interactive-callback': () => log('widget', 'checkbox shown'),
+    'after-interactive-callback':  () => log('widget', 'interactive step ended (clicked or timed out)')
+  });
+}
+</script>
+
+<!-- [CORE] explicit render; calls run() once loaded. Must stay below the script above -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=run" async defer></script>
 </body>
 </html>
